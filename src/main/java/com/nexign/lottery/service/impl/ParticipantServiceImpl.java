@@ -3,6 +3,7 @@ package com.nexign.lottery.service.impl;
 import com.nexign.lottery.dto.ParticipantDto;
 import com.nexign.lottery.dto.WinnerDto;
 import com.nexign.lottery.exception.NotEnoughParticipantsException;
+import com.nexign.lottery.exception.ServerSideErrorException;
 import com.nexign.lottery.model.ParticipantEntity;
 import com.nexign.lottery.repository.ParticipantRepository;
 import com.nexign.lottery.service.ParticipantService;
@@ -30,8 +31,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public ParticipantDto createParticipant(ParticipantDto participantDto) {
-        final ParticipantEntity participantEntity = conversionService.convert(participantDto, ParticipantEntity.class);
+        if (participantDto == null) {
+            throw new ServerSideErrorException("Participant is absent.");
+        }
 
+        final ParticipantEntity participantEntity = conversionService.convert(participantDto, ParticipantEntity.class);
         participantRepository.save(participantEntity);
 
         return participantDto;
@@ -49,7 +53,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     public WinnerDto startLottery() {
 
 //        int prize = 1 + (int) (Math.random() * 1000);
-        int prize = Integer.parseInt(getRandomNumber().split("\n")[0]);
+        int prize = Integer.parseInt(getRandomNumber(1, 1000).split("\n")[0]);
 
         List<ParticipantEntity> allParticipants = participantRepository.findAll();
         if (allParticipants.size() < 2) {
@@ -58,7 +62,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         deleteAllParticipants();
         
 //        int winnerIndex = (int) (Math.random() * allParticipants.size());
-        int winnerIndex = Integer.parseInt(getRandomNumber().split("\n")[0]);
+        int winnerIndex = Integer.parseInt(getRandomNumber(0, allParticipants.size() - 1).split("\n")[0]);
         ParticipantEntity winner = allParticipants.get(winnerIndex);
         WinnerDto winnerDto = new WinnerDto(winner.getName(), winner.getAge(), winner.getCity(), prize);
 
@@ -70,10 +74,11 @@ public class ParticipantServiceImpl implements ParticipantService {
         participantRepository.deleteAll();
     }
 
-    private String getRandomNumber() {
+    private String getRandomNumber(int min, int max) {
         return webClient
                 .get()
-                .uri("https://www.random.org/integers/?num=1&min=1&max=1000&col=1&base=10&format=plain&rnd=new")
+                .uri(String.format("https://www.random.org/integers/?num=1&min=%d&max=%d&col=1&base=10" +
+                        "&format=plain&rnd=new", min, max))
                 .retrieve()
                 .bodyToMono(String.class)
                 .retryWhen(Retry.fixedDelay(3, Duration.ofMillis(1000)))

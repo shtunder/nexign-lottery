@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -29,7 +30,8 @@ public class LotteryController {
     private final WinnerServiceImpl winnerService;
 
     @PostMapping("/participant")
-    public ResponseEntity<ResponseBody<ParticipantDto>> createParticipant(@RequestBody final ParticipantDto participantDto) {
+    public ResponseEntity<ResponseBody<ParticipantDto>> createParticipant(
+            @RequestBody(required = false) @Valid final ParticipantDto participantDto) {
         final ParticipantDto createdParticipant = participantService.createParticipant(participantDto);
 
         final ResponseBody<ParticipantDto> responseBody = ResponseBody
